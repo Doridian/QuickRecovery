@@ -1,0 +1,97 @@
+#!/usr/bin/lua
+local function runInsideSystem(cmd)
+	os.execute("chroot /mnt " .. cmd)
+end
+
+local function fileExists(fName)
+	local fh = io.open(fName, "r")
+	if fh then
+		fh:close()
+		return true
+	end
+	return false
+end
+
+local function isMountedRoot()
+	return fileExists("/mnt/etc/fstab")
+end
+
+local mode = arg[1]
+
+if not mode or mode == "" then
+	print("Usage: easyrec mount/run/shell/password/sefix")
+	return
+end
+
+if mode == "mount" then
+	if isMountedRoot() then
+		print("E: Root FS already mounted")
+		return
+	end
+
+
+	local lfs = require("lfs")
+
+	local function mountFS(uuid)
+		os.execute("umount /mnt")
+		os.execute("mount /dev/disk/by-uuid/" .. uuid .. " /mnt")	
+	end
+
+	local function mountSystemDirs()
+		os.execute("mount --bind /dev /mnt/dev")
+		os.execute("mount --bind /proc /mnt/proc")
+		os.execute("mount --bind /sys /mnt/sys")
+		runInsideSystem("mount -a")
+	end
+
+	local function getAllUUIDs()
+		local ret = {}
+		for fName in lfs.dir("/dev/disk/by-uuid/") do
+			local fRealName = "/dev/disk/by-uuid/" .. fName
+			if lfs.attributes(fRealName, "mode") == "block device" then
+				table.insert(ret, fName)
+			end
+		end
+		return ret
+	end
+
+	for _,drive in pairs(getAllUUIDs()) do
+		mountFS(drive)
+		if isMountedRoot() then
+			break
+		end
+	end
+
+	if not isMountedRoot() then
+		os.execute("umount /mnt")
+		print("E: Could not find Root FS")
+		return
+	end
+
+	mountSystemDirs()
+	
+	print("Root FS successfully mounted")
+	
+	return
+end
+
+if not isMountedRoot() then
+	print("E: Please mount the Root FS first")
+	return
+end
+
+if mode == "run" then
+	table.remove(arg, 1)
+	runInsideSystem(table.concat(arg, " "))
+elseif mode == "shell" then
+	runInsideSystem("sh")
+elseif mode == "password" then
+	runInsideSystem("sh -c passwd")
+	print('W: If the system uses SELinux (CentOS systems likely do), please run "easyrec sefix" now')
+elseif mode == "sefix" then
+	runInsideSystem("touch /.autorelabel")
+	print('SELinux /.autorelabel written')
+else
+	print("E: Invalid command")
+	return
+end

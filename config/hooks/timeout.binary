@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -i 's,timeout 0,timeout 3,' 'binary/syslinux/syslinux.cfg'
