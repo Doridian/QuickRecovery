@@ -32,9 +32,9 @@ if mode == "mount" then
 
 	local lfs = require("lfs")
 
-	local function mountFS(uuid)
+	local function mountFS(devfile)
 		os.execute("umount /mnt")
-		os.execute("mount /dev/disk/by-uuid/" .. uuid .. " /mnt")	
+		os.execute("mount " .. devfile .. " /mnt")	
 	end
 
 	local function mountSystemDirs()
@@ -43,26 +43,39 @@ if mode == "mount" then
 		os.execute("mount --bind /sys /mnt/sys")
 		runInsideSystem("mount -a")
 	end
-
-	local function getAllUUIDs()
+	
+	local function getAllBlockDevicesIn(folder)
 		local ret = {}
-		for fName in lfs.dir("/dev/disk/by-uuid/") do
-			local fRealName = "/dev/disk/by-uuid/" .. fName
+		for fName in lfs.dir(folder) do
+			local fRealName = folder .. fName
 			if lfs.attributes(fRealName, "mode") == "block device" then
-				table.insert(ret, fName)
+				table.insert(ret, fRealName)
 			end
 		end
 		return ret
 	end
-
-	for _,drive in pairs(getAllUUIDs()) do
+	
+	local rootFound = false
+	
+	for _,drive in pairs(getAllBlockDevicesIn("/dev/md/")) do
 		mountFS(drive)
 		if isMountedRoot() then
+			rootFound = true
 			break
 		end
 	end
 
-	if not isMountedRoot() then
+	if not rootFound then
+		for _,drive in pairs(getAllBlockDevicesIn("/dev/disk/by-uuid/")) do
+			mountFS(drive)
+			if isMountedRoot() then
+				rootFound = true
+				break
+			end
+		end
+	end
+
+	if not rootFound then
 		os.execute("umount /mnt")
 		print("E: Could not find Root FS")
 		return
