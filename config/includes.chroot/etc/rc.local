@@ -1,0 +1,21 @@
+#!/bin/sh
+echo "Re-scanning MDRAID..."
+mdadm --assemble --scan
+echo "MDRAID scan complete"
+
+echo "Re-scanning LVM..."
+pvscan
+vgscan
+lvscan
+echo "LVM scan complete"
+
+randpasswd user
+randpasswd root
+
+service ssh restart
+
+export PRIMARYIP=`ifconfig eth0 | grep "inet addr:" | sed -r "s/.*addr:([0-9.]+) .*/\\1/"`
+echo "You can connect to SSH via the IP $PRIMARYIP"
+unset PRIMARYIP
+
+exit 0

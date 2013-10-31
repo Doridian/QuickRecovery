@@ -1,1 +1,1 @@
-parted sudo lvm2 cryptsetup cryptmount lua5.2 lua-filesystem screen openssh-client ncftp ftp mtr telnet dnsutils mdadm
+parted sudo lvm2 cryptsetup cryptmount lua5.2 lua-filesystem screen openssh-client ncftp ftp mtr telnet dnsutils mdadm openssh-server

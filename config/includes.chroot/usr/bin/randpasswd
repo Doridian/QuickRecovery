@@ -1,0 +1,5 @@
+#!/bin/sh
+export PASSWDTMP=`cat /dev/urandom | tr -dc A-Za-z0-9 | dd bs=10 count=1 2>/dev/null`
+echo "$1:$PASSWDTMP" | chpasswd
+echo "New password for $1 is now $PASSWDTMP"
+unset PASSWDTMP
