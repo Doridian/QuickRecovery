@@ -1,4 +1,6 @@
 #!/bin/sh
+dhclient -v eth0
+
 echo "Re-scanning MDRAID..."
 mdadm --assemble --scan
 echo "MDRAID scan complete"
@@ -15,7 +17,8 @@ randpasswd root
 service ssh restart
 
 export PRIMARYIP=`ifconfig eth0 | grep "inet addr:" | sed -r "s/.*addr:([0-9.]+) .*/\\1/"`
-echo "You can connect to SSH via the IP $PRIMARYIP"
+export VPNIP=`ifconfig eth1 | grep "inet addr:" | sed -r "s/.*addr:([0-9.]+) .*/\\1/"`
+echo "You can connect to SSH via the IP $PRIMARYIP (or $VPNIP in the tinc)"
 unset PRIMARYIP
 
 exit 0
